@@ -1,0 +1,9 @@
+####
+GET http://localhost:3000/api/v1/transaction/gettrxstatus?status=3
+Content-Type:  application/json 
+
+{ 
+    "id": 1
+}
+
+###
