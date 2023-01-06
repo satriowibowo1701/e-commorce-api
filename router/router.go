@@ -40,12 +40,12 @@ func (m *Method) Set(path string, method string, handler http.HandlerFunc, middl
 func (m *Method) Get(w http.ResponseWriter, r *http.Request) bool {
 	if m.Handler[r.URL.Path] == nil {
 		http.Error(w, "Not Path Found ", http.StatusNotFound)
-		log.Println("error3")
+
 		return false
 	}
 	if m.Handler[r.URL.Path][r.Method] == nil {
 		http.Error(w, "Method Not Allowed ", http.StatusMethodNotAllowed)
-		log.Println("error2")
+		
 		return false
 	}
 
