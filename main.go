@@ -7,6 +7,7 @@ import (
 	"github.com/go-playground/validator"
 	"github.com/satriowibowo1701/e-commorce-api/controller"
 	"github.com/satriowibowo1701/e-commorce-api/db"
+	"github.com/satriowibowo1701/e-commorce-api/middleware"
 	"github.com/satriowibowo1701/e-commorce-api/repository"
 	"github.com/satriowibowo1701/e-commorce-api/router"
 	"github.com/satriowibowo1701/e-commorce-api/service"
@@ -26,7 +27,7 @@ func main() {
 
 	server := http.Server{
 		Addr:    "localhost:3000",
-		Handler: router,
+		Handler: middleware.AuthtenticationMiddleware(router),
 	}
 	fmt.Println("Listening")
 	server.ListenAndServe()

@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/satriowibowo1701/e-commorce-api/helper"
@@ -49,10 +50,30 @@ func (repository *UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, 
 		return nil, errors.New("User not found")
 	}
 }
+func (repository *UserRepositoryImpl) FindByIdAdmin(ctx context.Context, tx *sql.Tx, userId int) (*model.UserAdminView, error) {
+	SQL := "select id,username,name,role,adress,email,create_at from user where id = ?"
+	rows, err := tx.QueryContext(ctx, SQL, userId)
+	if err != nil {
+		return nil, errors.New("Error Sql")
+	}
+	defer rows.Close()
+	defer tx.Commit()
+	user := model.UserAdminView{}
+	if rows.Next() {
+		err := rows.Scan(&user.ID, &user.Username, &user.Name, &user.Role, &user.Address, &user.Email, &user.CreatedAt)
+		if err != nil {
+			return nil, errors.New("error Scan")
+		}
+		return &user, nil
+	} else {
+		return nil, errors.New("User not found")
+	}
+}
 
 func (repository *UserRepositoryImpl) FindByUsername(ctx context.Context, tx *sql.Tx, username string) (*model.User, error) {
 	SQL := "select id,username,name,password,role,adress,email,create_at from user where username = ?"
 	rows, err := tx.QueryContext(ctx, SQL, username)
+	fmt.Println(err)
 	if err != nil {
 		return nil, errors.New("Error Sql")
 	}
@@ -70,18 +91,18 @@ func (repository *UserRepositoryImpl) FindByUsername(ctx context.Context, tx *sq
 	}
 }
 
-func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]*model.User, error) {
-	SQL := "select id,username,name,password,role,adress,email,create_at from user"
+func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]*model.UserAll, error) {
+	SQL := "select id,name from user"
 	rows, err := tx.QueryContext(ctx, SQL)
 	defer tx.Commit()
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var users []*model.User
+	var users []*model.UserAll
 	for rows.Next() {
-		user := model.User{}
-		err := rows.Scan(&user.ID, &user.Username, &user.Name, &user.Password, &user.Role, &user.Address, &user.Email, &user.CreatedAt)
+		user := model.UserAll{}
+		err := rows.Scan(&user.ID, &user.Name)
 		if err != nil {
 			return nil, errors.New("Cannot Scaning")
 		}

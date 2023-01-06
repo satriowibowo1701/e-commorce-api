@@ -23,30 +23,32 @@ func init() {
 	CONNMAXIDLETIME = time.Duration(conmaxidletime) * time.Minute
 	DATABASE_NAME = os.Getenv("DATABASE_NAME")
 	JWT_EXPIRATION_DURATION = time.Hour * time.Duration(duration)
+
 	JWT_SECRET = os.Getenv("JWT_SECRET")
 	PORT = os.Getenv("PORT")
 	smptpport, _ := strconv.Atoi(os.Getenv("CONFIG_SMTP_PORT"))
 	CONFIG_SMTP_HOST = os.Getenv("CONFIG_SMTP_HOST")
 	CONFIG_SMTP_PORT = smptpport
+
 	CONFIG_SENDER_NAME = os.Getenv("CONFIG_SENDER_NAME")
 	CONFIG_AUTH_EMAIL = os.Getenv("CONFIG_AUTH_EMAIL")
 	CONFIG_AUTH_PASSWORD = os.Getenv("CONFIG_AUTH_PASSWORD")
-
 }
 
-var JWT_SECRET = ""
-var JWT_EXPIRATION_DURATION time.Duration
-var PORT = ""
+var (
+	JWT_SECRET              = ""
+	JWT_EXPIRATION_DURATION time.Duration
+	PORT                    = ""
+	CONFIG_SMTP_HOST        = ""
+	CONFIG_SMTP_PORT        = 0
+	CONFIG_SENDER_NAME      = ""
+	CONFIG_AUTH_EMAIL       = ""
+	CONFIG_AUTH_PASSWORD    = ""
+	DATABASE_NAME           = ""
+	MAX_IDLE_CONNS          = 0
+	MAX_OPEN_CONNS          = 0
+	CONNMAXLIFETIME         time.Duration
+	CONNMAXIDLETIME         time.Duration
 
-var CONFIG_SMTP_HOST = ""
-var CONFIG_SMTP_PORT = 0
-var CONFIG_SENDER_NAME = ""
-var CONFIG_AUTH_EMAIL = ""
-var CONFIG_AUTH_PASSWORD = ""
-var DATABASE_NAME = ""
-var MAX_IDLE_CONNS = 0
-var MAX_OPEN_CONNS = 0
-var CONNMAXLIFETIME time.Duration
-var CONNMAXIDLETIME time.Duration
-
-var Mutex sync.Mutex
+	Mutex sync.Mutex
+)

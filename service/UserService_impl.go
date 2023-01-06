@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 
 	"github.com/satriowibowo1701/e-commorce-api/helper"
 	"github.com/satriowibowo1701/e-commorce-api/model"
@@ -51,7 +52,7 @@ func (service *InitService) UpdateUser(ctx context.Context, request model.UserUp
 
 }
 
-func (service *InitService) FindAllUser(ctx context.Context) ([]*model.User, error) {
+func (service *InitService) FindAllUser(ctx context.Context) ([]*model.UserAll, error) {
 	tx, _ := service.DB.Begin()
 	users, err := service.UserRepository.FindAll(ctx, tx)
 	if err != nil {
@@ -61,6 +62,9 @@ func (service *InitService) FindAllUser(ctx context.Context) ([]*model.User, err
 }
 
 func (service *InitService) FindUserById(ctx context.Context, userid int64) (*model.User, error) {
+	if userid == -1 {
+		return nil, errors.New("No Cookie Id Found")
+	}
 	tx, _ := service.DB.Begin()
 	user, err := service.UserRepository.FindById(ctx, tx, int(userid))
 	if err != nil {
@@ -89,7 +93,7 @@ func (service *InitService) Login(ctx context.Context, req model.LoginRequest) (
 		return "", errors.New("Password Salah")
 	}
 
-	token, err := helper.GenerateToken(user.ID, user.Role)
+	token, err := helper.GenerateToken(user.ID, strings.ToLower(user.Role))
 	if err != nil {
 		return "", err
 	}

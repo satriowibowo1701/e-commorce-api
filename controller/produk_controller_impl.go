@@ -26,7 +26,6 @@ func (controller *InitController) UpdateProduct(w http.ResponseWriter, r *http.R
 	helper.ReadFromRequestBody(r, &produk)
 	err := controller.ProductService.Update(r.Context(), produk)
 	response := helper.ResponseWithMessage(err, "Success Updating Product")
-
 	helper.WriteToResponseBody(w, response)
 }
 

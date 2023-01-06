@@ -1,25 +1,28 @@
 package model
 
 type TransactionAdmin struct {
-	TransactionId int64       `json:"transaction_id"`
-	CustomerName  string      `json:"customer_name"`
-	CustomerId    int64       `json:"customer_id"`
-	Date          string      `json:"date"`
-	Status        int         `json:"status"`
-	OrderItem     []OrderItem `json:"order_items"`
+	TransactionId    int64       `json:"transaction_id"`
+	CustomerName     string      `json:"customer_name"`
+	CustomerId       int64       `json:"customer_id"`
+	Date             string      `json:"date"`
+	Status           int         `json:"status"`
+	TransactionTotal int64       `json:"transaction_total"`
+	OrderItem        []OrderItem `json:"order_items"`
 }
 type TransactionCus struct {
-	TransactionId int64       `json:"transaction_id"`
-	CustomerId    int64       `json:"customer_id"`
-	Date          string      `json:"date"`
-	Status        int         `json:"status"`
-	OrderItem     []OrderItem `json:"order_items"`
+	TransactionId    int64       `json:"transaction_id"`
+	CustomerId       int64       `json:"customer_id"`
+	Date             string      `json:"date"`
+	Status           int         `json:"status"`
+	TransactionTotal int64       `json:"transaction_total"`
+	OrderItem        []OrderItem `json:"order_items"`
 }
 
 type TransactionRequest struct {
 	TransactionId int64        `json:"transaction_id"`
 	CustomerId    int64        `validate:"required" json:"customerid"`
 	Status        int64        `validate:"required" json:"status"`
+	Total         int64        `json:"total_transaction" `
 	OrderItems    []*OrderItem `validate:"required" json:"orderitems"`
 }
 
@@ -56,6 +59,7 @@ type TempTransaction struct {
 }
 
 type TempUpdateTransactionRequest struct {
-	Id  int64 `validate:"required" json:"id"`
-	Qty int64 `validate:"required" json:"qty"`
+	Id   int64  `validate:"required" json:"id"`
+	Name string `validate:"required" json:"name"`
+	Qty  int64  `validate:"required" json:"qty"`
 }

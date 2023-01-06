@@ -1,6 +1,7 @@
 package router
 
 import (
+	"fmt"
 	"log"
 	"net/http"
 
@@ -15,12 +16,13 @@ type Handler struct {
 }
 
 type Method struct {
-	Mux     *http.ServeMux
-	Handler map[string]map[string]*Handler
-	Cache   string
+	Mux        *http.ServeMux
+	Handler    map[string]map[string]*Handler
+	Middleware map[string]string
+	Cache      string
 }
 
-func (m *Method) Set(path string, method string, handler http.HandlerFunc) *Method {
+func (m *Method) Set(path string, method string, handler http.HandlerFunc, middleware string) *Method {
 	if m.Handler[path] == nil {
 		m.Handler[path] = make(map[string]*Handler)
 	}
@@ -28,6 +30,7 @@ func (m *Method) Set(path string, method string, handler http.HandlerFunc) *Meth
 		m.Handler[path][method] = &Handler{}
 		m.Mux.HandleFunc(path, handler)
 	}
+	m.Middleware[path] = middleware
 	m.Handler[path][method].HandlerFunc = handler
 	m.Handler[path][method].Method = method
 	m.Handler[path][method].Path = path
@@ -50,7 +53,6 @@ func (m *Method) Get(w http.ResponseWriter, r *http.Request) bool {
 }
 
 func (m *Method) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-
 	if m.Get(w, r) {
 		log.Println("error1")
 		m.Mux.ServeHTTP(w, r)
@@ -63,19 +65,33 @@ func (m *Method) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func NewRouter(ProdukController controller.ProdukController, TransactionController controller.TransactionController, UserConttoller controller.UserController) *Method {
 	router := &http.ServeMux{}
 	newRouter := &Method{
-		Mux:     router,
-		Handler: make(map[string]map[string]*Handler),
+		Mux:        router,
+		Handler:    make(map[string]map[string]*Handler),
+		Middleware: make(map[string]string),
 	}
-	newRouter.Set("/api/v1/user/register", "POST", UserConttoller.RegisterUser)
-	newRouter.Set("/api/v1/user/login", "POST", UserConttoller.LoginUser)
-	newRouter.Set("/api/v1/user/updateuser", "POST", UserConttoller.UpdateUser)
-	newRouter.Set("/api/v1/user/getallusers", "GET", UserConttoller.FindAllUsers)
-	newRouter.Set("/api/v1/user/gettrxcusbyid", "POST", TransactionController.GetAllTransactionsByIdCus)
-	newRouter.Set("/api/v1/user/gettrxcus", "GET", TransactionController.GetAllTransactionsCus)
-	newRouter.Set("/api/v1/user/createtrx", "GET", TransactionController.CreateTransaction)
-	newRouter.Set("/api/v1/transaction/gettrxstatus", "GET", TransactionController.GetAllTransactionsByStatusCus)
-	newRouter.Set("/api/v1/transaction/inserttmptrx", "POST", TransactionController.InsertTransactionsTmp)
-	newRouter.Set("/api/v1/transaction/deletetmptrx", "GET", TransactionController.DeleteTransactionsTmp)
-	newRouter.Set("/api/v1/transaction/updatetmptrx", "POST", TransactionController.UpdateTransactionsTmp)
+	//noauth
+	newRouter.Set("/api/v1/user/register", "POST", UserConttoller.RegisterUser, "noauth")
+	newRouter.Set("/api/v1/user/login", "POST", UserConttoller.LoginUser, "noauth")
+	//general
+	newRouter.Set("/api/v1/user/logout", "GET", UserConttoller.Logout, "general")
+	newRouter.Set("/api/v1/user/updateuser", "PUT", UserConttoller.UpdateUser, "general")
+	newRouter.Set("/api/v1/user/getuserbyid", "GET", UserConttoller.FindAllUsers, "general")
+	newRouter.Set("/api/v1/user/profile", "GET", UserConttoller.FindByUserid, "general")
+	newRouter.Set("/api/v1/produk/all", "GET", ProdukController.FindAll, "general")
+	//admin
+	newRouter.Set("/api/v1/user/getallusers", "GET", UserConttoller.FindAllUsers, "admin")
+	newRouter.Set("/api/v1/transaction/getalltrxcus", "GET", TransactionController.GetAllTransactionsCus, "admin")
+	newRouter.Set("/api/v1/product/create", "POST", ProdukController.CreateProduct, "admin")
+	newRouter.Set("/api/v1/product/update", "PUT", ProdukController.UpdateProduct, "admin")
+	newRouter.Set("/api/v1/product/delete", "DELETE", ProdukController.DeleteProduct, "admin")
+	//cus
+	newRouter.Set("/api/v1/transaction/createtrx", "POST", TransactionController.CreateTransaction, "customer")
+	newRouter.Set("/api/v1/transaction/gettrxcusbyid", "POST", TransactionController.GetAllTransactionsByIdCus, "customer")
+	newRouter.Set("/api/v1/transaction/gettrxstatus", "GET", TransactionController.GetAllTransactionsByStatusCus, "customer")
+	newRouter.Set("/api/v1/transaction/inserttmptrx", "POST", TransactionController.InsertTransactionsTmp, "customer")
+	newRouter.Set("/api/v1/transaction/deletetmptrx", "DELETE", TransactionController.DeleteTransactionsTmp, "customer")
+	newRouter.Set("/api/v1/transaction/updatetmptrx", "PUT", TransactionController.UpdateTransactionsTmp, "customer")
+	fmt.Println(newRouter.Middleware)
+
 	return newRouter
 }

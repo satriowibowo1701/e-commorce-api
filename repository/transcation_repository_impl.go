@@ -20,8 +20,8 @@ func NewTransactionRepository(db *sql.DB) TransactionRepo {
 }
 
 func (t *Transaction) CreateTransaction(ctx context.Context, tx *sql.Tx, trx model.TransactionRequest) (error, int) {
-	SQL := "insert into transaction(customer_id,date,status) values (?,?,?)"
-	res, err := tx.ExecContext(ctx, SQL, trx.CustomerId, time.Now(), trx.Status)
+	SQL := "insert into transaction(customer_id,date,status,total) values (?,?,?,?)"
+	res, err := tx.ExecContext(ctx, SQL, trx.CustomerId, time.Now(), trx.Status, trx.Total)
 	trxid, _ := res.LastInsertId()
 
 	return helper.TxRollTrx(err, tx, "error Create Transaction", int(trxid))
@@ -29,8 +29,9 @@ func (t *Transaction) CreateTransaction(ctx context.Context, tx *sql.Tx, trx mod
 }
 
 func (t *Transaction) GetAllTransaction(ctx context.Context, tx *sql.Tx) ([]*model.TransactionAdmin, error) {
-	SQL := "select t.transaction_id,u.name,t.customer_id,t.date,t.status from user u JOIN transaction t on u.id=t.customer_id"
+	SQL := "select t.transaction_id, t.customer_id, t.date, t.status, t.total,u.name FROM user u JOIN transaction t ON u.id=t.customer_id"
 	rows, err := tx.QueryContext(ctx, SQL)
+
 	if err != nil {
 		return nil, err
 	}
@@ -38,19 +39,19 @@ func (t *Transaction) GetAllTransaction(ctx context.Context, tx *sql.Tx) ([]*mod
 	defer rows.Close()
 	var transactions []*model.TransactionAdmin
 	for rows.Next() {
-		trx := model.TransactionAdmin{}
-		err := rows.Scan(&trx.TransactionId, &trx.CustomerName, &trx.CustomerId, &trx.Date, &trx.Status)
+		trx := &model.TransactionAdmin{}
+		err := rows.Scan(&trx.TransactionId, &trx.CustomerId, &trx.Date, &trx.Status, &trx.TransactionTotal, &trx.CustomerName)
+
 		if err != nil {
 			return nil, errors.New("Cannot Scaning")
 		}
-
-		transactions = append(transactions, &trx)
+		transactions = append(transactions, trx)
 	}
 	return transactions, nil
 }
 
 func (t *Transaction) GetAllTransactionById(ctx context.Context, tx *sql.Tx, cstid int64) ([]*model.TransactionCus, error) {
-	SQL := "select transaction_id,customer_id,date,status from transaction WHERE customer_id=?"
+	SQL := "select transaction_id,customer_id,date,status,total from transaction WHERE customer_id=?"
 	rows, err := tx.QueryContext(ctx, SQL, cstid)
 	if err != nil {
 		return nil, errors.New("Error Sql")
@@ -60,7 +61,7 @@ func (t *Transaction) GetAllTransactionById(ctx context.Context, tx *sql.Tx, cst
 	var transactions []*model.TransactionCus
 	for rows.Next() {
 		trx := &model.TransactionCus{}
-		err := rows.Scan(&trx.TransactionId, &trx.CustomerId, &trx.Date, &trx.Status)
+		err := rows.Scan(&trx.TransactionId, &trx.CustomerId, &trx.Date, &trx.Status, &trx.TransactionTotal)
 		if err != nil {
 			return nil, errors.New("Cannot Scaning")
 		}
@@ -71,7 +72,7 @@ func (t *Transaction) GetAllTransactionById(ctx context.Context, tx *sql.Tx, cst
 }
 
 func (t *Transaction) GetAllTransactionsByStatusCus(ctx context.Context, tx *sql.Tx, status int64, cusid int64) ([]*model.TransactionCus, error) {
-	SQL := "select transaction_id,customer_id,date,status from transaction WHERE status=? AND customer_id=?"
+	SQL := "select transaction_id,customer_id,date,status,total from transaction WHERE status=? AND customer_id=?"
 	fmt.Println(cusid, status)
 	rows, err := tx.QueryContext(ctx, SQL, status, cusid)
 
@@ -83,13 +84,32 @@ func (t *Transaction) GetAllTransactionsByStatusCus(ctx context.Context, tx *sql
 	var transactions []*model.TransactionCus
 	for rows.Next() {
 		trx := model.TransactionCus{}
-		err := rows.Scan(&trx.TransactionId, &trx.CustomerId, &trx.Date, &trx.Status)
+		err := rows.Scan(&trx.TransactionId, &trx.CustomerId, &trx.Date, &trx.Status, &trx.TransactionTotal)
 		if err != nil {
 			return nil, errors.New("Cannot Scaning")
 		}
 		transactions = append(transactions, &trx)
 	}
 	return transactions, nil
+}
+
+func (t *Transaction) GetAllTransactionsByTransactionid(ctx context.Context, tx *sql.Tx, trxid int64, cusid int64) (*model.TransactionCus, error) {
+	SQL := "select transaction_id,customer_id,date,status,total from transaction WHERE status=? AND customer_id=?"
+	rows, err := tx.QueryContext(ctx, SQL, trxid, cusid)
+	if err != nil {
+		return nil, errors.New("Error Sql")
+	}
+	defer rows.Close()
+	defer tx.Commit()
+	if rows.Next() {
+		trx := model.TransactionCus{}
+		err := rows.Scan(&trx.TransactionId, &trx.CustomerId, &trx.Date, &trx.Status, &trx.TransactionTotal)
+		if err != nil {
+			return nil, errors.New("Cannot Scaning")
+		}
+		return &trx, nil
+	}
+	return nil, errors.New("No data found")
 }
 
 func (t *Transaction) InsertTempTransaction(ctx context.Context, tx *sql.Tx, trx model.TempTransactionRequest) error {
@@ -109,6 +129,12 @@ func (t *Transaction) DeleteTempTransaction(ctx context.Context, tx *sql.Tx, cid
 	_, err := tx.ExecContext(ctx, SQL, cid)
 
 	return helper.TxRollback(err, tx, "Cannot Insert to Tmp Transaction")
+}
+
+func (t *Transaction) DeleteTempTransactionByid(ctx context.Context, tx *sql.Tx, trxid int64, cusid int64) error {
+	SQL := "DELETE FROM temp_order WHERE customer_id = ? and id = ?"
+	_, err := tx.ExecContext(ctx, SQL, trxid, cusid)
+	return helper.TxRollback(err, tx, "Cannot Delete Tmp Transaction")
 }
 func (t *Transaction) GetAllTempTransactionsCus(ctx context.Context, tx *sql.Tx, cusid int64) ([]*model.TempTransaction, error) {
 	SQL := "select t.id, t.product_id, t.qty, t.price, t.customer_id, p.name from t temp_order JOIN p product ON p.product_id=t.product_id WHERE t.customer_id=?"

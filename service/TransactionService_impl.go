@@ -13,6 +13,18 @@ func (service *InitService) CreateTransaction(ctx context.Context, request model
 	if err != nil {
 		return err
 	}
+	if len(request.OrderItems) == 0 {
+		return errors.New("no order items")
+	}
+	prices := make(chan int)
+	newprice := 0
+	for _, items := range request.OrderItems {
+		go func(price int) {
+			prices <- price
+		}(int(items.OrderPrice))
+		newprice += <-prices
+	}
+	request.Total = int64(newprice)
 	tx, _ := service.DB.Begin()
 	err, id := service.TransactionRepository.CreateTransaction(ctx, tx, request)
 	if err != nil {
@@ -24,7 +36,6 @@ func (service *InitService) CreateTransaction(ctx context.Context, request model
 		tx2, _ := service.DB.Begin()
 		go func(items *model.OrderItem) {
 			service.TransactionRepository.InsertOrderItems(context.Background(), tx2, items, int64(id))
-
 		}(items)
 	}
 
@@ -49,15 +60,15 @@ func (service *InitService) UpdateTmpTransaction(ctx context.Context, request mo
 
 }
 
-func (service *InitService) DeleteTmpTransaction(ctx context.Context, idtemptrx int64) error {
+func (service *InitService) DeleteTmpTransaction(ctx context.Context, idtemptrx int64, cusid int64) error {
 
 	tx, _ := service.DB.Begin()
 
-	if idtemptrx == -1 {
-		return errors.New("Id not attached")
+	if idtemptrx == -1 || cusid == -1 {
+		return errors.New("Id/cusid not attached")
 	}
 
-	err1 := service.TransactionRepository.DeleteTempTransaction(ctx, tx, idtemptrx)
+	err1 := service.TransactionRepository.DeleteTempTransactionByid(ctx, tx, idtemptrx, cusid)
 	if err1 != nil {
 		return err1
 	}
@@ -65,6 +76,9 @@ func (service *InitService) DeleteTmpTransaction(ctx context.Context, idtemptrx 
 }
 
 func (service *InitService) FindAllTmpTransaction(ctx context.Context, cusid int64) ([]*model.TempTransaction, error) {
+	if cusid == -1 {
+		return nil, errors.New("No Cookie Id Found")
+	}
 	tx, _ := service.DB.Begin()
 
 	items, err := service.TransactionRepository.GetAllTempTransactionsCus(ctx, tx, cusid)
@@ -75,6 +89,9 @@ func (service *InitService) FindAllTmpTransaction(ctx context.Context, cusid int
 }
 
 func (service *InitService) FindAllTmpTransactionCustomer(ctx context.Context, cusid int64) ([]*model.TempTransaction, error) {
+	if cusid == -1 {
+		return nil, errors.New("No Cookie Id Found")
+	}
 	tx, _ := service.DB.Begin()
 
 	items, err := service.TransactionRepository.GetAllTempTransactionsCus(ctx, tx, cusid)
@@ -86,7 +103,6 @@ func (service *InitService) FindAllTmpTransactionCustomer(ctx context.Context, c
 
 func (service *InitService) FindAllTransactionCustomer(ctx context.Context) ([]*model.TransactionAdmin, error) {
 	tx, _ := service.DB.Begin()
-
 	items, err := service.TransactionRepository.GetAllTransaction(ctx, tx)
 	if err != nil {
 		return nil, err
@@ -101,17 +117,16 @@ func (service *InitService) FindAllTransactionCustomer(ctx context.Context) ([]*
 		go func(itemss *model.TransactionAdmin, store []*model.TransactionAdmin) {
 			orderitems := service.TransactionRepository.GetAllOrderItems(ctx2, tx2, itemss.TransactionId)
 			newtrx := &model.TransactionAdmin{
-				TransactionId: itemss.TransactionId,
-				CustomerId:    itemss.CustomerId,
-				Date:          itemss.Date,
-				Status:        itemss.Status,
-				OrderItem:     orderitems,
+				TransactionId:    itemss.TransactionId,
+				CustomerName:     itemss.CustomerName,
+				CustomerId:       itemss.CustomerId,
+				Date:             itemss.Date,
+				Status:           itemss.Status,
+				TransactionTotal: itemss.TransactionTotal,
+				OrderItem:        orderitems,
 			}
 			res <- newtrx
 		}(itemsss, newres)
-
-	}
-	for i := 0; i < len(items); i++ {
 		newres = append(newres, <-res)
 	}
 
@@ -119,6 +134,9 @@ func (service *InitService) FindAllTransactionCustomer(ctx context.Context) ([]*
 }
 
 func (service *InitService) FindAllTransactionByStatus(ctx context.Context, status int, cusid int) ([]*model.TransactionCus, error) {
+	if cusid == -1 {
+		return nil, errors.New("No Cookie Id Found")
+	}
 	tx, _ := service.DB.Begin()
 	items, err := service.TransactionRepository.GetAllTransactionsByStatusCus(ctx, tx, int64(status), int64(cusid))
 	if err != nil {
@@ -142,8 +160,6 @@ func (service *InitService) FindAllTransactionByStatus(ctx context.Context, stat
 			res <- newtrx
 		}(itemsss, newres)
 
-	}
-	for i := 0; i < len(items); i++ {
 		newres = append(newres, <-res)
 	}
 
@@ -151,8 +167,10 @@ func (service *InitService) FindAllTransactionByStatus(ctx context.Context, stat
 }
 
 func (service *InitService) FindAllTransactionById(ctx context.Context, cusid int) ([]*model.TransactionCus, error) {
+	if cusid == -1 {
+		return nil, errors.New("No Cookie Id Found")
+	}
 	tx, _ := service.DB.Begin()
-
 	items, err := service.TransactionRepository.GetAllTransactionById(ctx, tx, int64(cusid))
 	if err != nil {
 		return nil, err
@@ -175,12 +193,9 @@ func (service *InitService) FindAllTransactionById(ctx context.Context, cusid in
 			res <- newtrx
 		}(itemsss, newres)
 
-	}
-	for i := 0; i < len(items); i++ {
-
 		newres = append(newres, <-res)
-
 	}
+
 	return newres, nil
 }
 func (service *InitService) InsertTmpTransaction(ctx context.Context, req model.TempTransactionRequest) error {
@@ -192,4 +207,18 @@ func (service *InitService) InsertTmpTransaction(ctx context.Context, req model.
 	service.TransactionRepository.InsertTempTransaction(ctx, tx, req)
 
 	return nil
+}
+
+func (service *InitService) FindAllTrxByTransactionid(ctx context.Context, trxid int64, cusid int64) (*model.TransactionCus, error) {
+
+	if cusid == -1 {
+		return nil, errors.New("No Cookie Id Found")
+	}
+	tx, _ := service.DB.Begin()
+	items, err := service.TransactionRepository.GetAllTransactionsByTransactionid(ctx, tx, trxid, cusid)
+	if err != nil {
+		return nil, err
+	}
+	return items, nil
+
 }

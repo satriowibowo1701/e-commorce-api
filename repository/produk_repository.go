@@ -9,7 +9,7 @@ import (
 
 type ProductRepo interface {
 	Create(ctx context.Context, tx *sql.Tx, produk model.ProdukRequest) error
-	Update(ctx context.Context, tx *sql.Tx, produk model.Produk) error
+	Update(ctx context.Context, tx *sql.Tx, produk model.ProdukUpdate) error
 	FindById(ctx context.Context, tx *sql.Tx, produkId int) (*model.Produk, error)
 	FindByName(ctx context.Context, tx *sql.Tx, name string) (*model.Produk, error)
 	FindAll(ctx context.Context, tx *sql.Tx) ([]*model.Produk, error)

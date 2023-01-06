@@ -62,5 +62,19 @@ func SetCokkie(key, value string, w http.ResponseWriter) {
 	cookie := &http.Cookie{}
 	cookie.Name = key
 	cookie.Value = value
+	cookie.Path = "/"
 	http.SetCookie(w, cookie)
 }
+
+func GetCokkie(key string, r *http.Request) int {
+	cookie, err := r.Cookie(key)
+	if err != nil {
+		return -1
+	}
+	newcookie, _ := strconv.Atoi(cookie.Value)
+	return newcookie
+}
+
+// func GenereteCSRF(Id int, r *http.Request) string {
+
+// }

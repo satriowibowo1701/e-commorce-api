@@ -13,18 +13,14 @@ func (service *InitService) Create(ctx context.Context, request model.ProdukRequ
 	if err != nil {
 		return err
 	}
-
+	tx2, _ := service.DB.Begin()
+	_, err2 := service.ProdukRepostory.FindByName(ctx, tx2, request.Name)
+	if err2 == nil {
+		return errors.New("name already exists")
+	}
 	tx, _ := service.DB.Begin()
+	_ = service.ProdukRepostory.Create(ctx, tx, request)
 
-	produk := model.ProdukRequest{
-		Name: request.Name,
-		Qty:  request.Qty,
-	}
-
-	err1 := service.ProdukRepostory.Create(ctx, tx, produk)
-	if err1 != nil {
-		return err1
-	}
 	return nil
 
 }
@@ -42,13 +38,8 @@ func (service *InitService) Update(ctx context.Context, request model.ProdukUpda
 	if err1 != nil {
 		return err1
 	}
-	produk := model.Produk{
-		Product_id: request.Product_id,
-		Name:       request.Name,
-		Qty:        request.Qty,
-	}
 
-	err2 := service.ProdukRepostory.Update(ctx, tx, produk)
+	err2 := service.ProdukRepostory.Update(ctx, tx, request)
 	if err2 != nil {
 		return err2
 	}

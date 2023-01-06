@@ -17,14 +17,14 @@ func NewProductRepo() ProductRepo {
 }
 
 func (repository *ProductImpl) Create(ctx context.Context, tx *sql.Tx, produk model.ProdukRequest) error {
-	SQL := "insert into product(name,quantity) values (?,?)"
-	_, err := tx.ExecContext(ctx, SQL, produk.Name, produk.Qty)
+	SQL := "insert into product(name,quantity,price) values (?,?,?)"
+	_, err := tx.ExecContext(ctx, SQL, produk.Name, produk.Qty, produk.Price)
 	return helper.TxRollback(err, tx, "error Creating Produk")
 }
 
-func (repository *ProductImpl) Update(ctx context.Context, tx *sql.Tx, produk model.Produk) error {
-	SQL := "update product set name = ?,quantity=? WHERE product_id = ?"
-	_, err := tx.ExecContext(ctx, SQL, produk.Name, produk.Qty, produk.Product_id)
+func (repository *ProductImpl) Update(ctx context.Context, tx *sql.Tx, produk model.ProdukUpdate) error {
+	SQL := "update product set name = ?,quantity=?,price=? WHERE product_id = ?"
+	_, err := tx.ExecContext(ctx, SQL, produk.Name, produk.Qty, produk.Price, produk.Product_id)
 
 	return helper.TxRollback(err, tx, "Error updating Produk")
 }

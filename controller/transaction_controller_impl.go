@@ -29,10 +29,11 @@ func (controller *InitController) GetAllTransactionsCus(w http.ResponseWriter, r
 }
 
 func (controller *InitController) GetAllTransactionsByStatusCus(w http.ResponseWriter, r *http.Request) {
-	cusid := model.User{}
-	helper.ReadFromRequestBody(r, &cusid)
+
+	cusid := helper.GetCokkie("id", r)
 	status := helper.GetParam("status", r)
-	data, err := controller.TransactionService.FindAllTransactionByStatus(r.Context(), status, cusid.ID)
+
+	data, err := controller.TransactionService.FindAllTransactionByStatus(r.Context(), status, cusid)
 	response := helper.ResponseWithData(err, data)
 	helper.WriteToResponseBody(w, response)
 }
@@ -59,7 +60,8 @@ func (controller *InitController) DeleteTransactionsTmp(w http.ResponseWriter, r
 	config.Mutex.Lock()
 	defer config.Mutex.Unlock()
 	id := helper.GetParam("id", r)
-	err := controller.TransactionService.DeleteTmpTransaction(r.Context(), int64(id))
+	cusid := helper.GetCokkie("id", r)
+	err := controller.TransactionService.DeleteTmpTransaction(r.Context(), int64(id), int64(cusid))
 	response := helper.ResponseWithMessage(err, "Successfully delete tmp transaction")
 	helper.WriteToResponseBody(w, response)
 }
@@ -74,11 +76,16 @@ func (controller *InitController) UpdateTransactionsTmp(w http.ResponseWriter, r
 }
 
 func (controller *InitController) GetAllTempTransactionsCus(w http.ResponseWriter, r *http.Request) {
-	config.Mutex.Lock()
-	defer config.Mutex.Unlock()
-	cusdata := model.User{}
-	helper.ReadFromRequestBody(r, &cusdata)
-	data, err := controller.TransactionService.FindAllTmpTransactionCustomer(r.Context(), int64(cusdata.ID))
+	cusid := helper.GetCokkie("id", r)
+	data, err := controller.TransactionService.FindAllTmpTransactionCustomer(r.Context(), int64(cusid))
+	response := helper.ResponseWithData(err, data)
+	helper.WriteToResponseBody(w, response)
+}
+
+func (controller *InitController) FindTrxByTransactionId(w http.ResponseWriter, r *http.Request) {
+	cusid := helper.GetCokkie("id", r)
+	trxid := helper.GetParam("trxid", r)
+	data, err := controller.TransactionService.FindAllTrxByTransactionid(r.Context(), int64(trxid), int64(cusid))
 	response := helper.ResponseWithData(err, data)
 	helper.WriteToResponseBody(w, response)
 }
