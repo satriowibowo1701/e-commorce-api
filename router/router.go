@@ -90,7 +90,6 @@ func NewRouter(ProdukController controller.ProdukController, TransactionControll
 	newRouter.Set("/api/v1/transaction/inserttmptrx", "POST", TransactionController.InsertTransactionsTmp, "customer")
 	newRouter.Set("/api/v1/transaction/deletetmptrx", "DELETE", TransactionController.DeleteTransactionsTmp, "customer")
 	newRouter.Set("/api/v1/transaction/updatetmptrx", "PUT", TransactionController.UpdateTransactionsTmp, "customer")
-	fmt.Println(newRouter.Middleware)
 
 	return newRouter
 }
