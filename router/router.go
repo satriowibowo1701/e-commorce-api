@@ -54,7 +54,6 @@ func (m *Method) Get(w http.ResponseWriter, r *http.Request) bool {
 
 func (m *Method) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if m.Get(w, r) {
-		log.Println("error1")
 		m.Mux.ServeHTTP(w, r)
 		return
 	}
