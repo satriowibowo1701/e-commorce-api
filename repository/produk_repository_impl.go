@@ -17,29 +17,35 @@ func NewProductRepo() ProductRepo {
 }
 
 func (repository *ProductImpl) Create(ctx context.Context, tx *sql.Tx, produk model.ProdukRequest) error {
-	SQL := "insert into product(name,quantity,price) values (?,?,?)"
+	SQL := "insert into product(name,quantity,price) values ($1,$2,$3)"
 	_, err := tx.ExecContext(ctx, SQL, produk.Name, produk.Qty, produk.Price)
-	return helper.TxRollback(err, tx, "error Creating Produk")
+	return helper.IfError(err, "error Creating Produk")
 }
 
 func (repository *ProductImpl) Update(ctx context.Context, tx *sql.Tx, produk model.ProdukUpdate) error {
-	SQL := "update product set name = ?,quantity=?,price=? WHERE product_id = ?"
+	SQL := "update product set name=$1,quantity=$2,price=$3 WHERE product_id = $4"
 	_, err := tx.ExecContext(ctx, SQL, produk.Name, produk.Qty, produk.Price, produk.Product_id)
 
-	return helper.TxRollback(err, tx, "Error updating Produk")
+	return helper.IfError(err, "Error updating Produk")
+}
+func (repository *ProductImpl) UpdateQty(ctx context.Context, tx *sql.Tx, newqty int64, id int64) error {
+	SQL := "update product set quantity=$1 WHERE product_id = $2"
+	_, err := tx.ExecContext(ctx, SQL, newqty, id)
+
+	return helper.IfError(err, "Error updating Produk")
 }
 
 func (repository *ProductImpl) FindById(ctx context.Context, tx *sql.Tx, produkId int) (*model.Produk, error) {
-	SQL := "select product_id,name,quantity from product where product_id = ?"
+	SQL := "select product_id,name,quantity,price from product where product_id = $1"
 	rows, err := tx.QueryContext(ctx, SQL, produkId)
+
 	if err != nil {
 		return nil, errors.New("Error Sql")
 	}
 	defer rows.Close()
-	defer tx.Commit()
 	produk := model.Produk{}
 	if rows.Next() {
-		err := rows.Scan(&produk.Product_id, &produk.Name, &produk.Qty)
+		err := rows.Scan(&produk.Product_id, &produk.Name, &produk.Qty, &produk.Price)
 		if err != nil {
 			return nil, errors.New("error Scan")
 		}
@@ -50,13 +56,12 @@ func (repository *ProductImpl) FindById(ctx context.Context, tx *sql.Tx, produkI
 }
 
 func (repository *ProductImpl) FindByName(ctx context.Context, tx *sql.Tx, name string) (*model.Produk, error) {
-	SQL := "select product_id,name,quantity from product where name = ?"
+	SQL := "select product_id,name,quantity from product where name = $1"
 	rows, err := tx.QueryContext(ctx, SQL, name)
 	if err != nil {
 		return nil, errors.New("Error Sql")
 	}
 	defer rows.Close()
-	defer tx.Commit()
 	produk := model.Produk{}
 	if rows.Next() {
 		err := rows.Scan(&produk.Product_id, &produk.Name, &produk.Qty)
@@ -70,17 +75,17 @@ func (repository *ProductImpl) FindByName(ctx context.Context, tx *sql.Tx, name 
 }
 
 func (repository *ProductImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]*model.Produk, error) {
-	SQL := "select product_id,name,quantity from product"
+	SQL := "select product_id,name,quantity,price from product"
 	rows, err := tx.QueryContext(ctx, SQL)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	defer tx.Commit()
+
 	var products []*model.Produk
 	for rows.Next() {
 		product := model.Produk{}
-		err := rows.Scan()
+		err := rows.Scan(&product.Product_id, &product.Name, &product.Qty, &product.Price)
 		if err != nil {
 			return nil, errors.New("Cannot Scaning")
 		}
@@ -90,7 +95,8 @@ func (repository *ProductImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]*mode
 }
 
 func (repository *ProductImpl) DeleteById(ctx context.Context, tx *sql.Tx, productid int64) error {
-	SQL := "DELETE FROM product WHERE product_id =?"
+	SQL := "DELETE FROM product WHERE product_id =$1"
 	_, err := tx.ExecContext(ctx, SQL, productid)
-	return helper.TxRollback(err, tx, "Error Deleting Produk")
+	return helper.TxRollback(err, tx, "Error Delete Produk")
+
 }

@@ -55,7 +55,7 @@ func Authorization(role string, id int, r *http.Request) error {
 		return err1
 	}
 	newcookiid, _ := strconv.Atoi(cookieid.Value)
-	if newcookiid != id && cookierole.Value != role {
+	if newcookiid != id || cookierole.Value != role {
 		return errors.New("Unauthorized")
 	}
 	return nil

@@ -18,36 +18,29 @@ func (service *InitService) CreateUser(ctx context.Context, request model.UserRe
 
 	tx, _ := service.DB.Begin()
 	_, err1 := service.UserRepository.FindByUsername(ctx, tx, request.Username)
-	if err1.Error() != "User not found" {
-		return err1
+	if err1 == nil {
+		return helper.TxRollback(errors.New("error"), tx, "Username Already Taken")
 	}
 	password_hash, _ := helper.HashPassword(request.Password)
 	request.Password = password_hash
-	err2 := service.UserRepository.Create(ctx, tx, request)
-	if err2 != nil {
-		return err2
-	}
-	return nil
+	err3 := service.UserRepository.Create(ctx, tx, request)
+	return helper.TxRollback(err3, tx, "Cannot Create Account")
 }
 
-func (service *InitService) UpdateUser(ctx context.Context, request model.UserUpdate) error {
+func (service *InitService) UpdateUser(ctx context.Context, request model.UserUpdate, id int) error {
 
 	err := service.Validate.Struct(request)
 	if err != nil {
 		return err
 	}
-
 	tx, _ := service.DB.Begin()
-
-	_, err1 := service.ProdukRepostory.FindById(ctx, tx, int(request.Id))
-	if err1 != nil {
-		return err1
-	}
-
-	err2 := service.UserRepository.Update(ctx, tx, request)
+	request.Password, _ = helper.HashPassword(request.Password)
+	err2 := service.UserRepository.Update(ctx, tx, request, id)
+	defer helper.TxRollback(err2, tx, "erroor")
 	if err2 != nil {
 		return err2
 	}
+
 	return nil
 
 }
@@ -61,12 +54,12 @@ func (service *InitService) FindAllUser(ctx context.Context) ([]*model.UserAll, 
 	return users, nil
 }
 
-func (service *InitService) FindUserById(ctx context.Context, userid int64) (*model.User, error) {
+func (service *InitService) FindUserById(ctx context.Context, userid int) (*model.User, error) {
 	if userid == -1 {
 		return nil, errors.New("No Cookie Id Found")
 	}
 	tx, _ := service.DB.Begin()
-	user, err := service.UserRepository.FindById(ctx, tx, int(userid))
+	user, err := service.UserRepository.FindById(ctx, tx, userid)
 	if err != nil {
 		return nil, errors.New("No Data Found")
 	}
@@ -83,21 +76,30 @@ func (service *InitService) FindUserByUsername(ctx context.Context, username str
 }
 
 func (service *InitService) Login(ctx context.Context, req model.LoginRequest) (string, error) {
+
 	tx, _ := service.DB.Begin()
 	user, err := service.UserRepository.FindByUsername(ctx, tx, req.Username)
+	defer helper.TxRollback(err, tx, "Error")
 	if err != nil {
 		return "", err
 	}
-	err1 := helper.VerifyPassword(user.Password, req.Password)
-	if err1 != nil {
-		return "", errors.New("Password Salah")
+	tokench := make(chan string)
+	errch := make(chan error)
+	defer close(errch)
+	defer close(tokench)
+	go func() {
+		token, _ := helper.GenerateToken(user.ID, strings.ToLower(user.Role))
+		tokench <- token
+	}()
+	go func() {
+		err1 := helper.VerifyPassword(user.Password, req.Password)
+		errch <- err1
+	}()
+	rtoken := <-tokench
+	if err1 := <-errch; err1 != nil {
+		return "", errors.New("Wrong password")
 	}
 
-	token, err := helper.GenerateToken(user.ID, strings.ToLower(user.Role))
-	if err != nil {
-		return "", err
-	}
-
-	return token, nil
+	return rtoken, nil
 
 }

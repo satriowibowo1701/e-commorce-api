@@ -1,20 +1,26 @@
 package helper
 
 import (
+	"math/rand"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/satriowibowo1701/e-commorce-api/model"
 )
 
 func GetParam(key string, r *http.Request) int {
-
 	res, err := strconv.Atoi(r.URL.Query().Get(key))
 	if err != nil {
 		return -1
 
 	}
 	return res
+
+}
+func GetParamString(key string, r *http.Request) string {
+
+	return r.URL.Query().Get(key)
 
 }
 
@@ -41,7 +47,6 @@ func ResponseWithMessage(err error, psn string) model.WebResponseWithMessage {
 func ResponseWithData(err error, data interface{}) interface{} {
 
 	if err != nil {
-
 		response := model.WebResponseWithMessage{
 			Status:  http.StatusBadRequest,
 			Message: err.Error(),
@@ -73,6 +78,11 @@ func GetCokkie(key string, r *http.Request) int {
 	}
 	newcookie, _ := strconv.Atoi(cookie.Value)
 	return newcookie
+}
+
+func GenerateNameImage(img string) string {
+
+	return img + strconv.Itoa(rand.Intn(time.Now().Day()))
 }
 
 // func GenereteCSRF(Id int, r *http.Request) string {

@@ -7,32 +7,40 @@ type TransactionAdmin struct {
 	Date             string      `json:"date"`
 	Status           int         `json:"status"`
 	TransactionTotal int64       `json:"transaction_total"`
+	Destination      string      `json:"destination"`
+	Proof            string      `json:"proof"`
+	Payment          string      `json:"payment"`
 	OrderItem        []OrderItem `json:"order_items"`
 }
 type TransactionCus struct {
-	TransactionId    int64       `json:"transaction_id"`
-	CustomerId       int64       `json:"customer_id"`
-	Date             string      `json:"date"`
-	Status           int         `json:"status"`
-	TransactionTotal int64       `json:"transaction_total"`
-	OrderItem        []OrderItem `json:"order_items"`
+	TransactionId    int64            `json:"transaction_id"`
+	CustomerId       int64            `json:"customer_id"`
+	Date             string           `json:"date"`
+	Status           int              `json:"status"`
+	TransactionTotal int64            `json:"transaction_total"`
+	PaymentId        int64            `json:"-"`
+	Destination      string           `json:"destination"`
+	Proof            string           `json:"proof"`
+	PaymentInfo      *PaymentResponse `json:"payment_info"`
+	OrderItem        []OrderItem      `json:"order_items"`
 }
 
 type TransactionRequest struct {
-	TransactionId int64        `json:"transaction_id"`
-	CustomerId    int64        `validate:"required" json:"customerid"`
-	Status        int64        `validate:"required" json:"status"`
-	Total         int64        `json:"total_transaction" `
-	OrderItems    []*OrderItem `validate:"required" json:"orderitems"`
+	CustomerId int64        `json:"customerid"`
+	Status     int64        `validate:"required" json:"status"`
+	PaymentId  int64        `validate:"required" json:"payment_id"`
+	Dest       string       `validate:"required" json:"destination"`
+	Total      int64        `json:"total_transaction" `
+	OrderItems []*OrderItem `validate:"required" json:"orderitems"`
 }
 
 type OrderItem struct {
 	Id          int64  `json:"id"`
 	OrderId     int64  `json:"orderid"`
-	ProductId   int64  `json:"productid"`
-	OrderQty    int64  `json:"orderqty"`
-	OrderPrice  int64  `json:"orderprice"`
-	ProductName string `json:"productname"`
+	ProductId   int64  `validate:"required" json:"productid"`
+	OrderQty    int64  `validate:"required" json:"orderqty"`
+	OrderPrice  int64  `validate:"required" json:"orderprice"`
+	ProductName string `validate:"required" json:"productname"`
 }
 
 type OrderItems struct {
@@ -43,10 +51,9 @@ type OrderItems struct {
 }
 
 type TempTransactionRequest struct {
-	ProductId  int64 `validate:"required" json:"product_id"`
-	Qty        int64 `validate:"required" json:"qty"`
-	Price      int64 `validate:"required" json:"price"`
-	CustomerId int64 `validate:"required" json:"customer_id"`
+	ProductId int64 `validate:"required" json:"product_id"`
+	Qty       int64 `validate:"required" json:"qty"`
+	Price     int64 `validate:"required" json:"price"`
 }
 
 type TempTransaction struct {
@@ -59,7 +66,8 @@ type TempTransaction struct {
 }
 
 type TempUpdateTransactionRequest struct {
-	Id   int64  `validate:"required" json:"id"`
-	Name string `validate:"required" json:"name"`
-	Qty  int64  `validate:"required" json:"qty"`
+	Id         int64 `validate:"required" json:"id"`
+	Qty        int64 `validate:"required" json:"qty"`
+	Productid  int64
+	Customerid int64
 }

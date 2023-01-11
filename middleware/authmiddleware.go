@@ -19,15 +19,18 @@ func AuthtenticationMiddleware(router *router.Method) http.Handler {
 			}
 			data, err2 := helper.ClaimsAuthToken(r)
 			if err2 != nil {
+
 				execption.UnAuthorized(w, err2.Error())
 				return
 			}
-			if err3 := helper.Authorization(data.Role, data.Id, r); err3 != nil {
+			err3 := helper.Authorization(data.Role, data.Id, r)
+			if err3 != nil {
 				execption.UnAuthorized(w, err3.Error())
 				return
 			}
 
-			if router.Middleware[r.URL.Path] != data.Role {
+			if router.Middleware[r.URL.Path] != data.Role && router.Middleware[r.URL.Path] != "general" {
+
 				execption.UnAuthorized(w, "Unauthorized")
 				return
 			}

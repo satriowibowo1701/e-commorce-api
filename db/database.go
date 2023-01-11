@@ -6,11 +6,13 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/satriowibowo1701/e-commorce-api/config"
+	"github.com/satriowibowo1701/e-commorce-api/helper"
 )
 
 func NewDB() *sql.DB {
-	db, err := sql.Open("mysql", "root@tcp(localhost:3306)/"+config.DATABASE_NAME)
-	fmt.Println(err)
+	dsn := fmt.Sprintf("host=%s user=%s password=%s port=%s dbname=%s sslmode=disable ", config.DBHOST, config.DBUSER, config.DBPASS, config.DBPORT, config.DBNAME)
+	db, err := sql.Open("postgres", dsn)
+	helper.PanicIfError(err)
 	db.SetMaxIdleConns(config.MAX_IDLE_CONNS)
 	db.SetMaxOpenConns(config.MAX_OPEN_CONNS)
 	db.SetConnMaxLifetime(config.CONNMAXLIFETIME)

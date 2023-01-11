@@ -11,4 +11,7 @@ type TransactionController interface {
 	InsertTransactionsTmp(w http.ResponseWriter, r *http.Request)
 	DeleteTransactionsTmp(w http.ResponseWriter, r *http.Request)
 	UpdateTransactionsTmp(w http.ResponseWriter, r *http.Request)
+	GetTransactionsCusByTrxid(w http.ResponseWriter, r *http.Request)
+	Image(w http.ResponseWriter, r *http.Request)
+	Upload(w http.ResponseWriter, r *http.Request)
 }

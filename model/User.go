@@ -30,7 +30,6 @@ type UserRegis struct {
 }
 
 type UserUpdate struct {
-	Id       int64  `validate:"required" json:"id"`
 	Name     string `validate:"required" json:"name"`
 	Password string `validate:"required" json:"password"`
 	Address  string `validate:"required" json:"address"`

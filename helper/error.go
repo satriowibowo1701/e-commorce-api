@@ -28,3 +28,10 @@ func TxRollTrx(err error, tx *sql.Tx, message string, data int) (error, int) {
 	tx.Commit()
 	return nil, data
 }
+
+func IfError(err error, message string) error {
+	if err != nil {
+		return errors.New(message)
+	}
+	return nil
+}

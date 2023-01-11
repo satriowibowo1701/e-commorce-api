@@ -1,6 +1,7 @@
 package execption
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -14,8 +15,7 @@ func NotAllowed(w http.ResponseWriter) {
 }
 
 func UnAuthorized(w http.ResponseWriter, message string) {
-	w.WriteHeader(http.StatusUnauthorized)
 	messages := &model.WebResponseWithMessage{Status: 401,
 		Message: message}
-	helper.WriteToResponseBody(w, messages)
+	helper.WriteToResponseBody(w, messages, errors.New("t"), http.StatusUnauthorized)
 }
