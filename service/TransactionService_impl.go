@@ -22,7 +22,7 @@ func (service *InitService) CreateTransaction(ctx context.Context, request model
 
 	var newprice int64
 	for _, items := range request.OrderItems {
-		newprice += items.OrderPrice * items.OrderQty
+		newprice += items.OrderPrice
 	}
 	request.Total = newprice
 
