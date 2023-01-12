@@ -3,8 +3,10 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 	"sync"
+	"time"
 
 	"github.com/satriowibowo1701/e-commorce-api/helper"
 	"github.com/satriowibowo1701/e-commorce-api/model"
@@ -19,21 +21,21 @@ func (service *InitService) CreateTransaction(ctx context.Context, request model
 	if len(request.OrderItems) == 0 {
 		return errors.New("no order items")
 	}
-
+	fmt.Println(time.Now().Format("15:04:05.000000"))
 	var newprice int64
 	for _, items := range request.OrderItems {
 		newprice += items.OrderPrice * items.OrderQty
 	}
 	request.Total = newprice
-
+	fmt.Println(time.Now().Format("15:04:05.000000"), "kelar")
 	tx, _ := service.DB.Begin()
 	request.CustomerId = csid
 	id, err2 := service.TransactionRepository.CreateTransaction(ctx, tx, request)
+	defer helper.TxRollback(err2, tx, "Error Create Trx")
 	if err2 != nil {
 		return err2
 	}
 	go service.TransactionRepository.DeleteTempTransaction(ctx, tx, request.CustomerId)
-	defer helper.TxRollback(err2, tx, "Error Create Trx")
 	wg := sync.WaitGroup{}
 	for _, items := range request.OrderItems {
 		wg.Add(2)
@@ -53,7 +55,7 @@ func (service *InitService) CreateTransaction(ctx context.Context, request model
 		}(items)
 	}
 	wg.Wait()
-	return helper.TxRollback(err2, tx, "error Create")
+	return nil
 }
 
 func (service *InitService) UpdateTmpTransaction(ctx context.Context, request model.TempUpdateTransactionRequest) error {
