@@ -74,6 +74,7 @@ func NewRouter(ProdukController controller.ProdukController, TransactionControll
 	newRouter.Set("/api/v1/payments/all", "GET", PaymentController.FindAllPayment, "general")
 	//admin
 	newRouter.Set("/api/v1/user/getallusers", "GET", UserConttoller.FindAllUsers, "admin")
+	newRouter.Set("/api/v1/product/getallprdk", "GET", ProdukController.FindAllPrdkAdmin, "admin")
 	newRouter.Set("/api/v1/transaction/getalltrxcus", "GET", TransactionController.GetAllTransactionsCus, "admin")
 	newRouter.Set("/api/v1/product/create", "POST", ProdukController.CreateProduct, "admin")
 	newRouter.Set("/api/v1/trasaction/findtrx", "GET", TransactionController.GetTransactionsCusByTrxid, "admin")

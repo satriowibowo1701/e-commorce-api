@@ -75,7 +75,26 @@ func (repository *ProductImpl) FindByName(ctx context.Context, tx *sql.Tx, name 
 }
 
 func (repository *ProductImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]*model.Produk, error) {
-	SQL := "select product_id,name,quantity,price from product"
+	SQL := "select product_id,name,quantity,price from product WHERE quantity > 0"
+	rows, err := tx.QueryContext(ctx, SQL)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var products []*model.Produk
+	for rows.Next() {
+		product := model.Produk{}
+		err := rows.Scan(&product.Product_id, &product.Name, &product.Qty, &product.Price)
+		if err != nil {
+			return nil, errors.New("Cannot Scaning")
+		}
+		products = append(products, &product)
+	}
+	return products, nil
+}
+func (repository *ProductImpl) FindAllAdmin(ctx context.Context, tx *sql.Tx) ([]*model.Produk, error) {
+	SQL := "select product_id,name,quantity,price from product WHERE quantity"
 	rows, err := tx.QueryContext(ctx, SQL)
 	if err != nil {
 		return nil, err

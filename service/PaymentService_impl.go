@@ -17,7 +17,7 @@ func (service *InitService) CreatePayment(ctx context.Context, req *model.Paymen
 	tx, _ := service.DB.Begin()
 	_, err2 := service.PaymentsRepository.GetAllPaymentBynumber(ctx, tx, req.CardNum)
 	if err2 == nil {
-		return helper.TxRollback(err2, tx, "CardNumber Already Exists")
+		return helper.TxRollback(errors.New(""), tx, "CardNumber Already Exists")
 	}
 
 	err1 := service.PaymentsRepository.CreatePayment(ctx, tx, req)

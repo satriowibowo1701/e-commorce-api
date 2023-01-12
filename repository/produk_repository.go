@@ -12,6 +12,7 @@ type ProductRepo interface {
 	Update(ctx context.Context, tx *sql.Tx, produk model.ProdukUpdate) error
 	FindById(ctx context.Context, tx *sql.Tx, produkId int) (*model.Produk, error)
 	FindByName(ctx context.Context, tx *sql.Tx, name string) (*model.Produk, error)
+	FindAllAdmin(ctx context.Context, tx *sql.Tx) ([]*model.Produk, error)
 	FindAll(ctx context.Context, tx *sql.Tx) ([]*model.Produk, error)
 	DeleteById(ctx context.Context, tx *sql.Tx, productid int64) error
 	UpdateQty(ctx context.Context, tx *sql.Tx, newqty int64, id int64) error
