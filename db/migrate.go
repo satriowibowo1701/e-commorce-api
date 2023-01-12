@@ -2,22 +2,13 @@ package db
 
 import (
 	"database/sql"
-	"fmt"
-	"os"
 
-	"github.com/joho/godotenv"
 	_ "github.com/lib/pq"
+	"github.com/satriowibowo1701/e-commorce-api/config"
 )
 
 func Newmigrate() error {
-	godotenv.Load()
-	dbUser := os.Getenv("DB_USER")
-	dbPass := os.Getenv("DB_PASSWORD")
-	dbHost := os.Getenv("DB_HOST")
-	dbName := os.Getenv("DB_NAME")
-	dbPort := os.Getenv("DB_PORT")
-	dsn := fmt.Sprintf("host=%s user=%s password=%s port=%s dbname=%s sslmode=disable", dbHost, dbUser, dbPass, dbPort, dbName)
-	db, err := sql.Open("postgres", dsn)
+	db, err := sql.Open("postgres", config.DBURL)
 	if err != nil {
 		return err
 	}
