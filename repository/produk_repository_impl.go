@@ -29,9 +29,9 @@ func (repository *ProductImpl) Update(ctx context.Context, tx *sql.Tx, produk mo
 	return helper.IfError(err, "Error updating Produk")
 }
 func (repository *ProductImpl) UpdateQty(ctx context.Context, tx *sql.Tx, newqty int64, id int64) error {
+
 	SQL := "update product set quantity=$1 WHERE product_id = $2"
 	_, err := tx.ExecContext(ctx, SQL, newqty, id)
-
 	return helper.IfError(err, "Error updating Produk")
 }
 
