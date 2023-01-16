@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"strconv"
 	"sync"
@@ -19,41 +20,45 @@ func (service *InitService) CreateTransaction(ctx context.Context, request model
 	if len(request.OrderItems) == 0 {
 		return errors.New("no order items")
 	}
-
+	txpool := sync.Pool{
+		New: func() interface{} {
+			db, _ := service.DB.Begin()
+			return db
+		},
+	}
 	var newprice int64
 	for _, items := range request.OrderItems {
-		newprice += items.OrderPrice
+		newprice += items.OrderPrice * items.OrderQty
 	}
 	request.Total = newprice
-
-	tx, _ := service.DB.Begin()
 	request.CustomerId = csid
+	tx := txpool.Get().(*sql.Tx)
 	id, err2 := service.TransactionRepository.CreateTransaction(ctx, tx, request)
+	defer helper.TxRollback(err2, tx, "Error Create Trx")
 	if err2 != nil {
 		return err2
 	}
-	go service.TransactionRepository.DeleteTempTransaction(ctx, tx, request.CustomerId)
-	defer helper.TxRollback(err2, tx, "Error Create Trx")
 	wg := sync.WaitGroup{}
+	limit := make(chan struct{}, 20)
+	defer close(limit)
+	go service.TransactionRepository.DeleteTempTransaction(ctx, tx, request.CustomerId)
 	for _, items := range request.OrderItems {
-		wg.Add(2)
+		wg.Add(1)
+		limit <- struct{}{}
 		go func(itemss *model.OrderItem) {
 			defer wg.Done()
-			tx3, _ := service.DB.Begin()
-			defer tx3.Commit()
-			service.TransactionRepository.InsertOrderItems(context.Background(), tx3, itemss, int64(id))
-		}(items)
-		go func(itemss *model.OrderItem) {
-			ctx2 := context.Background()
-			tx2, _ := service.DB.Begin()
-			defer wg.Done()
-			defer tx2.Commit()
-			data, _ := service.ProdukRepostory.FindById(ctx2, tx2, int(itemss.ProductId))
-			service.ProdukRepostory.UpdateQty(ctx2, tx2, data.Qty-itemss.OrderQty, itemss.ProductId)
+			defer func() { <-limit }()
+			tx3 := txpool.Get().(*sql.Tx)
+			service.TransactionRepository.InsertOrderItems(ctx, tx, itemss, int64(id))
+			data, _ := service.ProdukRepostory.FindById(context.Background(), tx3, int(itemss.ProductId))
+			tx3.Commit()
+			service.ProdukRepostory.UpdateQty(ctx, tx, data.Qty-itemss.OrderQty, itemss.ProductId)
 		}(items)
 	}
+
 	wg.Wait()
-	return helper.TxRollback(err2, tx, "error Create")
+
+	return nil
 }
 
 func (service *InitService) UpdateTmpTransaction(ctx context.Context, request model.TempUpdateTransactionRequest) error {
@@ -97,94 +102,158 @@ func (service *InitService) FindAllTmpTransactionCustomer(ctx context.Context, c
 	return items, nil
 }
 
-func (service *InitService) FindAllTransactionCustomer(ctx context.Context) ([]*model.TransactionAdmin, error) {
-	tx, _ := service.DB.Begin()
+func (service *InitService) FindAllTransactionCustomer(ctx context.Context) ([]model.TransactionAdmin, error) {
+	txpool := sync.Pool{
+		New: func() interface{} {
+			db, _ := service.DB.Begin()
+			return db
+		},
+	}
+	tx := txpool.Get().(*sql.Tx)
 	items, err := service.TransactionRepository.GetAllTransaction(ctx, tx)
+	tx.Commit()
 	if err != nil {
 		return nil, err
 	}
-	tx.Commit()
+	if cache := service.CacheData[-1]; cache != nil {
+		data, _ := cache.([]model.TransactionAdmin)
+		if len(data) == len(items) {
+			return data, nil
+		}
+	}
 	wg := sync.WaitGroup{}
-	for _, itemsss := range items {
+	limit := make(chan struct{}, 30)
+	for index, itemsss := range items {
 		wg.Add(1)
-		go func(itemss *model.TransactionAdmin) {
+		limit <- struct{}{}
+		go func(itemss model.TransactionAdmin, index int) {
 			defer wg.Done()
-			tx2, _ := service.DB.Begin()
+			defer func() { <-limit }()
+			tx2 := txpool.Get().(*sql.Tx)
 			defer tx2.Commit()
-			itemss.OrderItem = service.TransactionRepository.GetAllOrderItems(context.Background(), tx2, itemss.TransactionId)
-		}(itemsss)
+			items[index].OrderItem = service.TransactionRepository.GetAllOrderItems(context.Background(), tx2, itemss.TransactionId)
+		}(itemsss, index)
 	}
 	wg.Wait()
+	if cache := service.CacheData[-1]; cache == nil || cache != nil {
+		if cache != nil {
+			data, _ := cache.([]model.TransactionAdmin)
+			if len(data) != len(items) {
+				service.CacheData[-1] = items
+				return items, nil
+			}
+		}
+		service.CacheData[-1] = items
+	}
 	return items, nil
 }
 
-func (service *InitService) FindAllTransactionByStatus(ctx context.Context, status int, cusid int) ([]*model.TransactionCus, error) {
+func (service *InitService) FindAllTransactionByStatus(ctx context.Context, status int, cusid int) ([]model.TransactionCus, error) {
 	if cusid == -1 {
 		return nil, errors.New("No Cookie Id Found")
 	}
-	tx, _ := service.DB.Begin()
+	txpool := sync.Pool{
+		New: func() interface{} {
+			db, _ := service.DB.Begin()
+			return db
+		},
+	}
+	tx, _ := txpool.Get().(*sql.Tx)
 	items, err := service.TransactionRepository.GetAllTransactionsByStatusCus(ctx, tx, int64(status), int64(cusid))
 	defer helper.TxRollback(err, tx, "Error Get Transaction")
 	if err != nil {
 		return nil, err
 	}
+	if cache := service.CacheData[int(cusid)]; cache != nil {
+		data, _ := cache.([]model.TransactionCus)
+		if len(data) == len(items) {
+			return data, nil
+		}
+	}
 	wg := sync.WaitGroup{}
-	for _, itemsss := range items {
-		wg.Add(2)
-		go func(itemss *model.TransactionCus) {
+	limit := make(chan struct{}, 30)
+	defer close(limit)
+	for index, itemsss := range items {
+		wg.Add(1)
+		limit <- struct{}{}
+		go func(itemss model.TransactionCus, index int64) {
+			defer func() { <-limit }()
 			defer wg.Done()
-			tx3, _ := service.DB.Begin()
-			defer tx3.Commit()
-
-			orderitems := service.TransactionRepository.GetAllOrderItems(context.Background(), tx3, itemss.TransactionId)
-			itemss.OrderItem = orderitems
-
-		}(itemsss)
-		go func(itemss *model.TransactionCus) {
-			defer wg.Done()
-			tx2, _ := service.DB.Begin()
+			tx2 := txpool.Get().(*sql.Tx)
 			defer tx2.Commit()
-			paymentInfo, _ := service.PaymentsRepository.GetAllPaymentByid(context.Background(), tx2, itemss.PaymentId)
-			itemss.PaymentInfo = paymentInfo
-		}(itemsss)
+			ctx2 := context.Background()
+			paymentInfo, _ := service.PaymentsRepository.GetAllPaymentByid(ctx2, tx2, itemss.PaymentId)
+			items[index].PaymentInfo = paymentInfo
+			orderitemss := service.TransactionRepository.GetAllOrderItems(ctx2, tx2, itemss.TransactionId)
+			items[index].OrderItem = orderitemss
+		}(itemsss, int64(index))
 	}
 	wg.Wait()
-
+	if service.CacheData[int(cusid)] == nil || service.CacheData[int(cusid)] != nil {
+		if service.CacheData[int(cusid)] != nil {
+			cache := service.CacheData[int(cusid)].([]model.TransactionCus)
+			if len(cache) != len(items) {
+				service.CacheData[int(cusid)] = items
+				return items, nil
+			}
+		}
+		service.CacheData[int(cusid)] = items
+	}
 	return items, nil
 }
 
-func (service *InitService) FindAllTransactionById(ctx context.Context, cusid int) ([]*model.TransactionCus, error) {
+func (service *InitService) FindAllTransactionById(ctx context.Context, cusid int) ([]model.TransactionCus, error) {
 	if cusid == -1 {
 		return nil, errors.New("No Cookie Id Found")
 	}
-	tx, _ := service.DB.Begin()
+	txpool := sync.Pool{
+		New: func() interface{} {
+			db, _ := service.DB.Begin()
+			return db
+		},
+	}
+	tx := txpool.Get().(*sql.Tx)
 	items, err := service.TransactionRepository.GetAllTransactionById(ctx, tx, int64(cusid))
-
-	helper.TxRollback(err, tx, "Error Get Transaction")
+	defer helper.TxRollback(err, tx, "Error Get Transaction")
 	if err != nil {
 		return nil, err
 	}
+
+	if cache := service.CacheData[int(cusid)]; cache != nil {
+		data, _ := cache.([]model.TransactionCus)
+		if len(data) == len(items) {
+			return data, nil
+		}
+	}
 	wg := sync.WaitGroup{}
-	for _, itemsss := range items {
-		wg.Add(2)
-		go func(itemss *model.TransactionCus) {
+	limit := make(chan struct{}, 30)
+	defer close(limit)
+	for index, itemsss := range items {
+		wg.Add(1)
+		limit <- struct{}{}
+		go func(itemss model.TransactionCus, index int64) {
+			defer func() { <-limit }()
 			defer wg.Done()
-			tx3, _ := service.DB.Begin()
-			defer tx3.Commit()
-			orderitemss := service.TransactionRepository.GetAllOrderItems(context.Background(), tx3, itemss.TransactionId)
-			itemss.OrderItem = orderitemss
-		}(itemsss)
-		go func(itemss *model.TransactionCus) {
-			defer wg.Done()
-			ctx2 := context.Background()
-			tx2, _ := service.DB.Begin()
+			tx2 := txpool.Get().(*sql.Tx)
 			defer tx2.Commit()
+			ctx2 := context.Background()
 			paymentInfo, _ := service.PaymentsRepository.GetAllPaymentByid(ctx2, tx2, itemss.PaymentId)
-			itemss.PaymentInfo = paymentInfo
-		}(itemsss)
+			items[index].PaymentInfo = paymentInfo
+			orderitemss := service.TransactionRepository.GetAllOrderItems(ctx2, tx2, itemss.TransactionId)
+			items[index].OrderItem = orderitemss
+		}(itemsss, int64(index))
 	}
 	wg.Wait()
-
+	if service.CacheData[int(cusid)] == nil || service.CacheData[int(cusid)] != nil {
+		if service.CacheData[int(cusid)] != nil {
+			cache := service.CacheData[int(cusid)].([]model.TransactionCus)
+			if len(cache) != len(items) {
+				service.CacheData[int(cusid)] = items
+				return items, nil
+			}
+		}
+		service.CacheData[int(cusid)] = items
+	}
 	return items, nil
 }
 func (service *InitService) InsertTmpTransaction(ctx context.Context, req model.TempTransactionRequest, csid int64) error {

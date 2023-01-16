@@ -41,6 +41,7 @@ func (p *Paymentimpl) GetAllPayment(ctx context.Context, tx *sql.Tx) ([]*model.P
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
 	for rows.Next() {
 		payment := &model.PaymentResponse{}
 		err = rows.Scan(&payment.Id, &payment.CardName, &payment.CardNum, &payment.CardHolderName)
@@ -58,8 +59,9 @@ func (p *Paymentimpl) GetAllPaymentByid(ctx context.Context, tx *sql.Tx, id int6
 	if err != nil {
 		return nil, err
 	}
+	defer rows.Close()
+	payment := &model.PaymentResponse{}
 	if rows.Next() {
-		payment := &model.PaymentResponse{}
 		err := rows.Scan(&payment.Id, &payment.CardName, &payment.CardNum, &payment.CardHolderName)
 		if err != nil {
 
@@ -77,6 +79,7 @@ func (p *Paymentimpl) GetAllPaymentByholdername(ctx context.Context, tx *sql.Tx,
 		return nil, err
 
 	}
+	defer rows.Close()
 	payments := []*model.PaymentResponse{}
 	for rows.Next() {
 		payment := &model.PaymentResponse{}
@@ -92,13 +95,16 @@ func (p *Paymentimpl) GetAllPaymentByholdername(ctx context.Context, tx *sql.Tx,
 func (p *Paymentimpl) GetAllPaymentBynumber(ctx context.Context, tx *sql.Tx, number int64) (*model.PaymentResponse, error) {
 	SQL := "SELECT id,name,norek,cardholdername FROM payments WHERE norek=$1"
 	rows, err := tx.QueryContext(ctx, SQL, number)
-
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
 	if rows.Next() {
 		payment := &model.PaymentResponse{}
-		err = rows.Scan(&payment.Id, &payment.CardName, &payment.CardNum, &payment.CardHolderName)
+		err1 := rows.Scan(&payment.Id, &payment.CardName, &payment.CardNum, &payment.CardHolderName)
 
-		if err != nil {
-			return nil, err
+		if err1 != nil {
+			return nil, err1
 		}
 		return payment, nil
 	}
@@ -111,6 +117,7 @@ func (p *Paymentimpl) CheckifExist(ctx context.Context, tx *sql.Tx, number int64
 	if err != nil {
 		return err
 	}
+	defer row.Close()
 	if row.Next() {
 		return nil
 	}

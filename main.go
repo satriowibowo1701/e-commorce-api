@@ -1,10 +1,7 @@
 package main
 
 import (
-	"math/rand"
 	"net/http"
-	"runtime"
-	"time"
 
 	"github.com/go-playground/validator"
 	"github.com/satriowibowo1701/e-commorce-api/config"
@@ -18,10 +15,7 @@ import (
 )
 
 func main() {
-
-	runtime.GOMAXPROCS(4)
 	err := db.Newmigrate()
-	rand.Seed(time.Now().UnixNano())
 	helper.PanicIfError(err)
 	db := db.NewDB()
 	defer db.Close()

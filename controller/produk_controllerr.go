@@ -8,4 +8,5 @@ type ProdukController interface {
 	DeleteProduct(w http.ResponseWriter, r *http.Request)
 	FindAll(w http.ResponseWriter, r *http.Request)
 	FindById(w http.ResponseWriter, r *http.Request)
+	FindAllPrdkAdmin(w http.ResponseWriter, r *http.Request)
 }

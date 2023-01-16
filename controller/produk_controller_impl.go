@@ -44,6 +44,11 @@ func (controller *InitController) FindAll(w http.ResponseWriter, r *http.Request
 	response := helper.ResponseWithData(err, data)
 	helper.WriteToResponseBody(w, response, err, http.StatusBadRequest)
 }
+func (controller *InitController) FindAllPrdkAdmin(w http.ResponseWriter, r *http.Request) {
+	data, err := controller.ProductService.FindAllPrdkAdmin(r.Context())
+	response := helper.ResponseWithData(err, data)
+	helper.WriteToResponseBody(w, response, err, http.StatusBadRequest)
+}
 
 func (controller *InitController) FindById(w http.ResponseWriter, r *http.Request) {
 	id := helper.GetParam("id", r)

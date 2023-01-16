@@ -101,3 +101,14 @@ func (service *InitService) FindAll(ctx context.Context) ([]*model.Produk, error
 	return products, nil
 
 }
+
+func (service *InitService) FindAllPrdkAdmin(ctx context.Context) ([]*model.Produk, error) {
+	tx, _ := service.DB.Begin()
+	products, err := service.ProdukRepostory.FindAllAdmin(ctx, tx)
+	defer helper.TxRollback(err, tx, "Error")
+	if err != nil {
+		return nil, err
+	}
+	return products, nil
+
+}

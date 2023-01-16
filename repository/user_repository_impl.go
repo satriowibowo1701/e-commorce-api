@@ -36,8 +36,8 @@ func (repository *UserRepositoryImpl) FindById(ctx context.Context, tx *sql.Tx, 
 	if err != nil {
 		return nil, errors.New("Error Sql")
 	}
-	user := model.User{}
 	defer rows.Close()
+	user := model.User{}
 	if rows.Next() {
 		err := rows.Scan(&user.ID, &user.Username, &user.Name, &user.Password, &user.Role, &user.Address, &user.Email, &user.CreatedAt)
 		if err != nil {
@@ -55,7 +55,6 @@ func (repository *UserRepositoryImpl) FindByIdAdmin(ctx context.Context, tx *sql
 		return nil, errors.New("Error Sql")
 	}
 	defer rows.Close()
-	defer tx.Commit()
 	user := model.UserAdminView{}
 	if rows.Next() {
 		err := rows.Scan(&user.ID, &user.Username, &user.Name, &user.Role, &user.Address, &user.Email, &user.CreatedAt)
@@ -90,7 +89,6 @@ func (repository *UserRepositoryImpl) FindByUsername(ctx context.Context, tx *sq
 func (repository *UserRepositoryImpl) FindAll(ctx context.Context, tx *sql.Tx) ([]*model.UserAll, error) {
 	SQL := "select id,name from usert"
 	rows, err := tx.QueryContext(ctx, SQL)
-	defer tx.Commit()
 	if err != nil {
 		return nil, err
 	}

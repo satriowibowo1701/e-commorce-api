@@ -14,6 +14,7 @@ type InitService struct {
 	ProdukRepostory       repository.ProductRepo
 	TransactionRepository repository.TransactionRepo
 	PaymentsRepository    repository.PaymentRepo
+	CacheData             map[int]interface{}
 }
 
 func RunService(DB *sql.DB, validate *validator.Validate, user repository.UserRepository, produk repository.ProductRepo, transaction repository.TransactionRepo, payment repository.PaymentRepo) (ProductService, TransactionService, UserService_impl, PaymentService) {
@@ -24,6 +25,7 @@ func RunService(DB *sql.DB, validate *validator.Validate, user repository.UserRe
 			ProdukRepostory:       produk,
 			TransactionRepository: transaction,
 			PaymentsRepository:    payment,
+			CacheData:             make(map[int]interface{}),
 		}, &InitService{
 			DB:                    DB,
 			Validate:              validate,
@@ -31,6 +33,7 @@ func RunService(DB *sql.DB, validate *validator.Validate, user repository.UserRe
 			ProdukRepostory:       produk,
 			TransactionRepository: transaction,
 			PaymentsRepository:    payment,
+			CacheData:             make(map[int]interface{}),
 		}, &InitService{
 			DB:                    DB,
 			Validate:              validate,
@@ -38,6 +41,7 @@ func RunService(DB *sql.DB, validate *validator.Validate, user repository.UserRe
 			ProdukRepostory:       produk,
 			TransactionRepository: transaction,
 			PaymentsRepository:    payment,
+			CacheData:             make(map[int]interface{}),
 		},
 		&InitService{
 			DB:                    DB,
@@ -46,6 +50,7 @@ func RunService(DB *sql.DB, validate *validator.Validate, user repository.UserRe
 			ProdukRepostory:       produk,
 			TransactionRepository: transaction,
 			PaymentsRepository:    payment,
+			CacheData:             make(map[int]interface{}),
 		}
 
 }

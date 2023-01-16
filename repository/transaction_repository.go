@@ -9,11 +9,11 @@ import (
 
 type TransactionRepo interface {
 	CreateTransaction(ctx context.Context, tx *sql.Tx, trx model.TransactionRequest) (int, error)
-	GetAllTransaction(ctx context.Context, tx *sql.Tx) ([]*model.TransactionAdmin, error)
+	GetAllTransaction(ctx context.Context, tx *sql.Tx) ([]model.TransactionAdmin, error)
 	UpdateTransaction(ctx context.Context, tx *sql.Tx, proof string, idtrx int64) error
-	GetAllTransactionById(ctx context.Context, tx *sql.Tx, cstid int64) ([]*model.TransactionCus, error)
+	GetAllTransactionById(ctx context.Context, tx *sql.Tx, cstid int64) ([]model.TransactionCus, error)
 	GetTransactionByTrxid(ctx context.Context, tx *sql.Tx, trxid int64) (*model.TransactionAdmin, error)
-	GetAllTransactionsByStatusCus(ctx context.Context, tx *sql.Tx, status int64, cusid int64) ([]*model.TransactionCus, error)
+	GetAllTransactionsByStatusCus(ctx context.Context, tx *sql.Tx, status int64, cusid int64) ([]model.TransactionCus, error)
 	InsertTempTransaction(ctx context.Context, tx *sql.Tx, trx model.TempTransactionRequest, csid int64) error
 	DeleteTempTransaction(ctx context.Context, tx *sql.Tx, cid int64) error
 	DeleteTempTransactionByid(ctx context.Context, tx *sql.Tx, trxid int64, cusid int64) error

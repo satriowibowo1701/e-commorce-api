@@ -20,7 +20,6 @@ func Newmigrate() error {
 		quantity INTEGER NOT NULL,
 		price INTEGER NOT NULL
 	);
-
 	CREATE TABLE IF NOT EXISTS usert(
 		id SERIAL PRIMARY KEY,
         username VARCHAR(20) NOT NULL,
@@ -31,14 +30,12 @@ func Newmigrate() error {
 		email VARCHAR(40) NOT NULL,
 		create_at TIMESTAMP NOT NULL
 	);
-
 	CREATE TABLE IF NOT EXISTS payments(
 		id SERIAL PRIMARY KEY,
         name VARCHAR(30) NOT NULL,
 		norek INTEGER NOT NULL,
 		cardholdername VARCHAR(40) NOT NULL
 	);
-
     CREATE TABLE IF NOT EXISTS transaction (
         transaction_id SERIAL PRIMARY KEY,
 		customer_id INTEGER NOT NULL,
@@ -49,7 +46,6 @@ func Newmigrate() error {
 		alamat_pengiriman VARCHAR(255) NOT NULL,
 		bukti_pembayaran VARCHAR(15) DEFAULT 'waiting'
 	);
-
 	CREATE TABLE IF NOT EXISTS transaction_items (
 		id SERIAL PRIMARY KEY,
 		transaction_id INTEGER NOT NULL,
@@ -57,7 +53,6 @@ func Newmigrate() error {
 		qty INTEGER NOT NULL,
 		price INTEGER NOT NULL
 	);
-
 	CREATE TABLE IF NOT EXISTS temp_order (
 	    id SERIAL PRIMARY KEY,
 		product_id INTEGER NOT NULL,

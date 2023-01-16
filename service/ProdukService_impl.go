@@ -12,4 +12,5 @@ type ProductService interface {
 	Delete(ctx context.Context, produkid int) error
 	FindById(ctx context.Context, productid int) (*model.Produk, error)
 	FindAll(ctx context.Context) ([]*model.Produk, error)
+	FindAllPrdkAdmin(ctx context.Context) ([]*model.Produk, error)
 }
